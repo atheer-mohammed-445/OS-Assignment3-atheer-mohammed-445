@@ -297,31 +297,31 @@ Give TWO examples where synchronization is critical:
 
 ## Part 6: GitHub Repository Information
 
-**Repository URL**: 
+**Repository URL**: https://github.com/atheer-mohammed-445/OS-Assignment3-atheer-mohammed-445.git
 
-**Number of commits**: 
+**Number of commits**: 10 commits
 
 **Commit messages**: 
-1. 
-2. 
-3. 
-4. 
+1. sit my student id:445052328
+2. Add Semaphore and ReentrantLock imports
+3. Implement synchronization mechanisms in SharedResources
+4. Introduce cpuSemaphore for CPU access control
 
 ---
 
 ## Summary
 
 **Total time spent on assignment**: 
-
+Around 8 hours
 **Key takeaways**: 
-1. 
-2. 
-3. 
+1. Concurrency Control: Learned how to effectively use ReentrantLock to prevent race conditions in shared counters and logs.
+2. Resource Management: Understood the role of Semaphores in simulating hardware constraints like CPU access.
+3. Robustness: Realized that using try-finally blocks is essential to prevent deadlocks by ensuring locks are always released.
 
-**Most challenging aspect**: 
+**Most challenging aspect**: The most challenging part was implementing fine-grained locking. I had to ensure that using multiple separate locks for each counter didn't lead to complex dependencies, while still maintaining the thread-safety of the executionLog during high-frequency context switching.
 
 **What I'm most proud of**: 
-
+I am most proud of achieving a fully synchronized simulation where the results are 100% consistent across multiple runs. Specifically, the integration of the cpuSemaphore within the runToCompletion method ensures the scheduler remains stable even when only one process is left.
 ---
 
 **End of Documentation**
