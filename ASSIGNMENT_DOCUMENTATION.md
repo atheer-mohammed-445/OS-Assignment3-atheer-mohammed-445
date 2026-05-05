@@ -31,42 +31,42 @@
 
 Document your development process with **minimum 3 entries** showing progression:
 
-### Entry 1 - [Date, Time]
-**What I implemented**: 
+### Entry 1 - [May 5, 2026, 02:00 PM]
+**What I implemented**:  Initial structure of SharedResources and adding ReentrantLock for each counter
 
-**Challenges encountered**: 
+**Challenges encountered**: Deciding between one global lock or multiple specific locks.
 
-**How I solved it**: 
+**How I solved it**:  Implemented Fine-grained locking to allow different threads to update different counters simultaneously without blocking each other
 
-**Testing approach**: 
+**Testing approach**: Printed lock hash codes to ensure each resource used a unique lock instance.
 
-**Time spent**: 
-
----
-
-### Entry 2 - [Date, Time]
-**What I implemented**: 
-
-**Challenges encountered**: 
-
-**How I solved it**: 
-
-**Testing approach**: 
-
-**Time spent**: 
+**Time spent**:  1 hour
 
 ---
 
-### Entry 3 - [Date, Time]
-**What I implemented**: 
+### Entry 2 - [May 5, 2026, 05:30 PM]
+**What I implemented**:  CPU access control using a Semaphore.
 
-**Challenges encountered**: 
+**Challenges encountered**: Ensuring that only one process "executes" at a time while others wait in the queue.
 
-**How I solved it**: 
+**How I solved it**:  Set cpuSemaphore permits to 1 and wrapped the execution logic in a try-finally block to guarantee the permit is released.
 
-**Testing approach**: 
+**Testing approach**:  Verified terminal output to ensure "executing quantum" messages never overlapped between different processes.
 
-**Time spent**: 
+**Time spent**:  1.5 hours.
+
+---
+
+### Entry 3 - [May 5, 2026, 09:00 PM]
+**What I implemented**:  Thread-safe executionLog and final UI formatting.
+
+**Challenges encountered**: Risk of ConcurrentModificationException when multiple threads add entries to the ArrayList.
+
+**How I solved it**: Created a logLock specifically for the executionLog list operations.
+
+**Testing approach**: Ran the simulation with the maximum number of processes (20+) to stress-test concurrent list access.
+
+**Time spent**:  1 hour.
 
 ---
 
@@ -106,7 +106,8 @@ Document your development process with **minimum 3 entries** showing progression
 
 **Your Answer**:
 
-[Your answer here - 4-6 sentences with code examples]
+[Counter Variables:The contextSwitchCount is a shared integer. Without synchronization, two threads might perform count++ (read-modify-write) simultaneously, leading to "Lost Updates" where the final count is lower than the actual events.
+ * Execution Log: The ArrayList is not thread-safe. Concurrent calls to .add() can lead to data corruption or a ConcurrentModificationException, causing the simulation to crash or lose log entries.]
 
 ---
 
@@ -115,7 +116,8 @@ Document your development process with **minimum 3 entries** showing progression
 
 **Your Answer**:
 
-[Your answer here - explain your implementation choices]
+[ ReentrantLock: Acts as a Mutex (Mutual Exclusion). I used it for the counters (e.g., contextSwitchLock) because only one thread should modify the value at a time to ensure atomicity.
+ * Semaphore: Manages permits. I used cpuSemaphore with 1 permit to represent a single CPU core. While a Mutex is owned by a thread, a Semaphore is better for signaling and managing a pool of identical resources (in this case, CPU time).]
 
 ---
 
@@ -124,7 +126,9 @@ Document your development process with **minimum 3 entries** showing progression
 
 **Your Answer**:
 
-[Your answer here - reference try-finally blocks, lock ordering, etc.]
+[Deadlock occurs when two or more threads are blocked forever, each waiting for a resource held by the other.
+ * Prevention 1 (Lock Ordering): I ensured that if multiple locks were needed, they would always be acquired in the same order.
+ * Prevention 2 (Timed/Safe Release): I used try-finally blocks. By placing .unlock() and .release() in the finally section, I ensured resources are freed even if an exception occurs, preventing other threads from being blocked indefinitely.]
 
 ---
 
@@ -137,7 +141,9 @@ Document your development process with **minimum 3 entries** showing progression
 
 **Your Answer**:
 
-[Your answer here - explain coarse-grained vs fine-grained locking, independence of counters, concurrency implications. Show understanding of when to use each approach. 5-8 sentences expected.]
+[I chose Fine-grained locking by using separate locks for each counter.
+ * Why: Since the contextSwitchCount, completedProcessCount, and totalWaitingTime are logically independent, there is no reason for a thread updating one to block a thread updating another.
+ * Trade-offs: Coarse-grained locking (one lock for all) is easier to implement but creates a bottleneck. Fine-grained locking increases complexity but significantly improves concurrency and performance in high-load scenarios.]
 
 ---
 
@@ -145,105 +151,122 @@ Document your development process with **minimum 3 entries** showing progression
 
 ### Critical Section #1: Counter Variables
 
-**Which variables**: 
+**Which variables**:  contextSwitchCount, completedProcessCount, totalWaitingTime.
 
 **Why they need protection**: 
 
-**Synchronization mechanism used**: 
+**Synchronization mechanism used**:  ReentrantLock
 
 **Code snippet**:
 ```java
-// Paste your implementation here
+   contextSwitchLock.lock();
+   try { contextSwitchCount++; }
+   finally { contextSwitchLock.unlock(); }
 ```
 
-**Justification**: 
+**Justification**:  These are shared states. The lock ensures the "read-increment-write" cycle is atomic.
 
 ---
 
 ### Critical Section #2: Execution Log
 
-**What resource**: 
+**What resource**:  List<String> executionLog.
 
 **Why it needs protection**: 
 
-**Synchronization mechanism used**: 
+**Synchronization mechanism used**:  ReentrantLock (logLock).
 
 **Code snippet**:
 ```java
-// Paste your implementation here
+//    logLock.lock();
+   try { executionLog.add(message); }
+   finally { logLock.unlock(); }
 ```
 
-**Justification**: 
+**Justification**: Protects the internal structure of the ArrayList from concurrent modification.
 
 ---
 
 ### Critical Section #3: CPU Semaphore
 
-**Purpose of semaphore**: 
+**Purpose of semaphore**: To simulate exclusive CPU execution.
 
 **Number of permits and why**: 
 
-**Where implemented**: 
+**Where implemented**: 1
 
 **Code snippet**:
 ```java
-// Paste your implementation here
+//    SharedResources.cpuSemaphore.acquire();
+   try { // execute quantum... }
+   finally { SharedResources.cpuSemaphore.release(); }
+   
+   
+
 ```
 
-**Effect on program behavior**: 
+**Effect on program behavior**:  Only one thread can enter the "running" state; others must wait in the semaphore's queue.
 
 ---
 
 ## Part 4: Testing and Verification (2 marks)
 
 ### Test 1: Consistency Check
-**What I tested**: Running program multiple times to verify consistent results
-
+**What I tested**:  Running the program multiple times with the same seed (Student ID) to verify that synchronization prevents non-deterministic results.
 **Testing procedure**: 
 ```bash
-# Commands used (run the program at least 5 times)
+#  1. Set studentID = 445052328.
+ 2. Executed the program 5 consecutive times.
+ 3. Compared the "Total Context Switches" and "Average Waiting Time" across all runs.
 ```
 
 **Results**: 
-(Show that running multiple times produces consistent, correct results)
+(Run 1-5: All runs produced exactly the same results (e.g., Total Context Switches and Average Waiting Time remained constant).
+ * Consistency: 100%.)
 
 **Why synchronization is necessary**: 
-(Explain what race conditions COULD occur without synchronization, even if you didn't observe them. Explain which shared resources need protection and why.)
+(Without synchronization, the contextSwitchCount++ operation (which is not atomic) could lead to "Lost Updates". If two threads finish their quantum at the exact same time, they might read the same counter value, increment it, and write it back, resulting in the counter being incremented by 1 instead of 2. Even if not observed in every run, synchronization guarantees this will *never* happen.)
 
 **Conclusion**: 
 
 ---
 
 ### Test 2: Exception Testing
-**What I tested**: Checking for ConcurrentModificationException
+**What I tested**: Checking for ConcurrentModificationException within the executionLog.
 
-**Testing procedure**: 
+**Testing procedure**:  1. Increased the number of processes to the maximum range (20+).
+ 2. Rapidly added log entries from multiple threads using SharedResources.logExecution().
+ 3. Observed if the program crashed during the execution or while printing the summary.
 
-**Results**: 
+**Results**:  * Errors: Zero ConcurrentModificationException encountered.
+ * Log Integrity: All log entries were successfully added and the executionLog.size() matched the expected number of events.
 
-**What this proves**: 
+**What this proves**: This proves that the logLock successfully protected the ArrayList. Since ArrayList is not thread-safe, the lock ensured that only one thread could modify the list's internal array at a time.
 
 ---
 
 ### Test 3: Correctness Verification
-**What I tested**: Verifying correct final values (total burst time, context switches, etc.)
+**What I tested**: Verifying that the final counters match the actual process lifecycle.
 
-**Expected values**: 
+**Expected values**: * Completed Processes: Should exactly match numProcesses.
+ * Remaining Time: Every process must reach 0ms.
 
-**Actual values**: 
+**Actual values**: * Completed Processes: Matches the number of threads created.
+ * Wait Time Calculation: The formula (completionTime - creationTime) - burstTime correctly yielded non-negative values for all processes.
 
-**Analysis**: 
+**Analysis**: The synchronization using the cpuSemaphore ensured that completionTime was only recorded after the process actually finished its final burst, leading to accurate statistics in the "Process Summary Table".
 
 ---
 
 ### Test 4: Different Scenarios
-**Scenario tested**: [e.g., different time quantum, more processes, etc.]
+**Scenario tested**: [Short Time Quantum vs. Long Time Quantum.
 
-**Purpose**: 
+**Purpose**: To see how the synchronization handles high-frequency context switching.
 
-**Results**: 
+**Results**:  With a Short Quantum (e.g., 500ms): The number of contextSwitchCount increased significantly. The contextSwitchLock handled the high contention without any race conditions.
+ * With a Long Quantum: Processes finished in fewer turns, and the cpuSemaphore correctly managed the transition between the run() method and the runToCompletion() method for the last process.
 
-**What I learned**: 
+**What I learned**: Synchronization is most critical when the "Time Quantum" is small, as threads are constantly yielding and acquiring the CPU, which increases the frequency of shared resource access.
 
 ---
 
@@ -251,7 +274,8 @@ Document your development process with **minimum 3 entries** showing progression
 
 ### What I learned about synchronization:
 
-[6-8 sentences about key concepts, challenges, insights]
+[What I learned about synchronization:
+Working on this simulation taught me that synchronization is the backbone of any multitasking operating system. I learned that even simple operations like count++ are dangerous in a multi-threaded environment because they are not "atomic." The most challenging part was ensuring that the cpuSemaphore was always released in the finally block; otherwise, the entire CPU would "hang," and no other process could execute.I also realized that using fine-grained locks (separate locks for each counter) is much better for performance than a single global lock.
 
 ---
 
@@ -259,15 +283,15 @@ Document your development process with **minimum 3 entries** showing progression
 
 Give TWO examples where synchronization is critical:
 
-**Example 1**: 
+**Example 1**: Database Management Systems (DBMS). When multiple users try to update the same record (like a bank balance), locks ensure that one transaction finishes before the next one starts to prevent money from "disappearing."
 
-**Example 2**: 
+**Example 2**:  Print Spoolers. A printer is a shared resource. A semaphore ensures that only one document is printed at a time, preventing lines of text from different files from being mixed on the same page.
 
 ---
 
 ### How I would explain synchronization to others:
 
-[Explain to someone who just finished Assignment 1 - use simple terms and analogies]
+[Imagine a shared classroom with only one whiteboard marker (the CPU). Even if there are 20 students (threads) who want to write, only the one holding the marker can write. Synchronization is the set of rules—like a "sign-up sheet" (the Queue) and the "handing over of the marker" (the Semaphore)—that ensures students don't fight over the marker or write over each other’s work. It turns chaos into an organized line.]
 
 ---
 
