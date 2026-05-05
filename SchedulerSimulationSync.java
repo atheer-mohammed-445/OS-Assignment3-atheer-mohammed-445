@@ -88,7 +88,7 @@ class SharedResources {
             logLock.unlock();
         }
 }
-
+}
 // Class representing a process that implements Runnable to be run by a thread
 class Process implements Runnable {
     private String name;
